@@ -2,7 +2,7 @@
 
 ![Spyhunt](https://github.com/gotr00t0day/spyhunt/blob/main/spyhunt_logo_cropped.png)
 
-**SpyHunt v4.0 (Security Hardened)** - A comprehensive network scanning and vulnerability assessment tool designed for security professionals and penetration testers. This tool performs comprehensive reconnaissance and vulnerability assessment on target networks and web applications, combining multiple scanning techniques with various external tools to provide extensive security intelligence.
+**SpyHunt v4.1 (Security Hardened)** - A comprehensive network scanning and vulnerability assessment tool designed for security professionals and penetration testers. This tool performs comprehensive reconnaissance and vulnerability assessment on target networks and web applications, combining multiple scanning techniques with various external tools to provide extensive security intelligence.
 
 ## 🆕 What's New in v4.0
 
@@ -12,6 +12,10 @@
 - ✅ **SSTI Scanner** - Server-Side Template Injection (Jinja2, Twig, Freemarker, Velocity, ERB, Smarty)
 - ✅ **NoSQL Injection Scanner** - MongoDB and CouchDB injection detection
 - ✅ **CRLF Scanner** - HTTP header injection detection
+
+### **Target Intelligence**
+- ✅ **Target Intel (`-ti`)** - Analyze domains/URLs for pentest suggestions based on company, industry, and subdomain
+- ✅ **HTML Graph Report (`--ti-html`)** - Export target intel as interactive network graph
 
 ### **Security Enhancements**
 - ✅ **Command Injection Protection** - Secure command execution prevents shell injection attacks
@@ -34,6 +38,13 @@
    - **SSTI (Server-Side Template Injection)** - Jinja2, Twig, Freemarker, Velocity, ERB, Smarty detection
    - **NoSQL Injection** - MongoDB and CouchDB authentication bypass and injection
    - **CRLF Injection** - HTTP header injection, response smuggling, XSS via CRLF
+   
+   **Target Intelligence**
+   - Domain/URL analysis for pentest focus
+   - Industry inference (fintech, API, ecommerce, etc.)
+   - Subdomain-based suggestions (api, admin, staging)
+   - Company purpose detection (GitHub, PayPal, etc.)
+   - Interactive HTML graph export
    
    **Reconnaissance & Information Gathering**
    - Subdomain enumeration
@@ -276,6 +287,10 @@ Passive Recon:
                         get the ips from a list of domains
   -dinfo, --domaininfo domain list
                         get domain information like codes,server,content length
+  -ti, --target-intel URL or domains.txt
+                        target intel: analyze domain for pentest suggestions
+  --ti-html [output.html]
+                        save target intel as interactive HTML graph (use with -ti)
   -sho, --shodan_ domain.com
                         Recon with shodan
   -shodan, --shodan_api KEY
@@ -466,6 +481,19 @@ python3 spyhunt.py -hibp password
 Subdomain Takeover
 ```
 python3 spyhunt.py -st domains.txt --save vuln_subs.txt -c 50 
+```
+Target Intel - Analyze domain for pentest suggestions
+```
+python3 spyhunt.py -ti example.com
+```
+Target Intel with multiple domains
+```
+python3 spyhunt.py -ti domains.txt
+```
+Target Intel - Save as interactive HTML graph
+```
+python3 spyhunt.py -ti example.com --ti-html
+python3 spyhunt.py -ti domains.txt --ti-html report.html
 ```
 Auto Recon
 ```
@@ -696,22 +724,39 @@ tail -f spyhunt.log
 grep "XXE vulnerability" spyhunt.log
 ```
 
+### Target Intel
+Analyze domains for domain-specific pentest suggestions based on company, industry, and subdomain:
+```bash
+# Single domain
+python3 spyhunt.py -ti api.github.com
+
+# List of domains
+python3 spyhunt.py -ti domains.txt
+
+# Export as interactive HTML graph
+python3 spyhunt.py -ti domains.txt --ti-html report.html
+```
+Suggestions are tailored by: domain purpose (e.g., GitHub → API focus), subdomain (api, admin, staging), industry (fintech, healthcare, ecommerce), and TLD.
+
 ### Bug Bounty Workflow Example
 ```bash
-# 1. Enumerate subdomains
+# 1. Target intel - understand what to test
+python3 spyhunt.py -ti target.com --ti-html intel.html
+
+# 2. Enumerate subdomains
 python3 spyhunt.py -s target.com --save subdomains.txt
 
-# 2. Probe for live hosts
+# 3. Probe for live hosts
 python3 spyhunt.py -p subdomains.txt --save live_hosts.txt
 
-# 3. Run comprehensive vulnerability scans
+# 4. Run comprehensive vulnerability scans
 python3 spyhunt.py --xxe https://api.target.com/xml --save xxe_findings.json
 python3 spyhunt.py --ssrf "https://api.target.com/fetch?url=test" --save ssrf_findings.json
 python3 spyhunt.py --ssti "https://target.com/render?template=test" --save ssti_findings.json
 python3 spyhunt.py --nosqli "https://api.target.com/users?id=test" --save nosql_findings.json
 python3 spyhunt.py --crlf "https://target.com/redirect?url=test" --save crlf_findings.json
 
-# 4. Traditional vulnerability scans
+# 5. Traditional vulnerability scans
 python3 spyhunt.py --xss "https://target.com/search?q=test"
 python3 spyhunt.py --sqli "https://target.com/product?id=1"
 python3 spyhunt.py -co live_hosts.txt
@@ -743,6 +788,8 @@ For detailed information:
 ## Version History
 
 ### v4.0 (Security Hardened) - October 2025
+- ➕ Added Target Intel (`-ti`) - domain analysis for pentest suggestions
+- ➕ Added Target Intel HTML graph export (`--ti-html`)
 - ➕ Added XXE Scanner
 - ➕ Added SSRF Scanner
 - ➕ Added SSTI Scanner

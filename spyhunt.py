@@ -94,6 +94,10 @@ from modules.advanced_scanners import (
 warnings.filterwarnings(action='ignore',module='bs4')
 
 requests.packages.urllib3.disable_warnings()
+# Suppress urllib3 connection errors (e.g. Connection reset by peer)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3.connection').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3.connectionpool').setLevel(logging.CRITICAL)
 
 banner = f"""
 
@@ -107,7 +111,7 @@ banner = f"""
 ░ ░▒  ░ ░░▒ ░     ▓██ ░▒░  ▒ ░▒░ ░░░▒░ ░ ░ ░ ░░   ░ ▒░    ░    
 ░  ░  ░  ░░       ▒ ▒ ░░   ░  ░░ ░ ░░░ ░ ░    ░   ░ ░   ░      
       ░           ░ ░      ░  ░  ░   ░              ░         
-{Fore.WHITE}V 4.0
+{Fore.WHITE}V 4.1
 {Fore.WHITE}By c0deninja
 {Fore.RESET}
 """
@@ -259,6 +263,14 @@ passiverecon_group.add_argument('-ips', '--ipaddresses',
 passiverecon_group.add_argument('-dinfo', '--domaininfo',
                     type=str, help='get domain information like codes,server,content length',
                     metavar='domain list')
+
+passiverecon_group.add_argument('-ti', '--target-intel',
+                    type=str, help='target intel: analyze URL or domain list for pentest suggestions',
+                    metavar='URL or domains.txt')
+passiverecon_group.add_argument('--ti-html',
+                    type=str, nargs='?', const='target_intel_report.html',
+                    help='save target intel as interactive HTML graph (use with -ti)',
+                    metavar='output.html')
 
 parser.add_argument('-isubs', '--importantsubdomains',
                     type=str, help='extract interesting subdomains from a list like dev, admin, test and etc..',
@@ -646,6 +658,19 @@ if args.ipinfo:
         sys.exit(1)
     scan_ip_info(args.ipinfo, args.token)
 
+# Target Intelligence - analyze domain/URL for pentest suggestions
+if args.target_intel:
+    from modules.target_intel import run_target_intel
+    ti_arg = args.target_intel.strip()
+    if os.path.isfile(ti_arg):
+        with open(ti_arg, 'r') as f:
+            targets = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
+        print(f"{Fore.CYAN}[*] Target Intel: {len(targets)} target(s) from {ti_arg}{Style.RESET_ALL}")
+    else:
+        targets = [ti_arg]
+        print(f"{Fore.CYAN}[*] Target Intel: {ti_arg}{Style.RESET_ALL}")
+    html_out = getattr(args, 'ti_html', None)
+    run_target_intel(targets, html_output=html_out)
 
 user_agent = useragent_list.get_useragent()
 header = {"User-Agent": user_agent}
@@ -1539,7 +1564,7 @@ if args.importantsubdomains:
                 important_subs.append(f"{subdomain_list}")
         for pos, value in enumerate(important_subs):
             print(f"{Fore.CYAN}{pos}: {Fore.GREEN}{value}")
-        with open("juice_subs.txt", "w") as f:
+        with open("juicy_subs.txt", "w") as f:
             for goodsubs in important_subs:
                 f.writelines(f"{goodsubs}\n")
 
