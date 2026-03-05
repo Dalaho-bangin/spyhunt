@@ -6,8 +6,12 @@ Analyzes domains/URLs and provides pentest suggestions with elegant output.
 import re
 import socket
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from urllib.parse import urlparse
 from typing import Optional, List, Dict, Tuple
+
+# Timeout for network ops - skip and move on if no response
+NETWORK_TIMEOUT = 7
 
 # Industry inference patterns: (pattern, industry, description)
 INDUSTRY_PATTERNS = [
@@ -159,9 +163,9 @@ def extract_domain(url_or_domain: str) -> str:
     return s.split('/')[0].split(':')[0]
 
 
-def get_whois_info(domain: str) -> Dict:
-    """Get WHOIS data for domain."""
-    try:
+def get_whois_info(domain: str, timeout: int = NETWORK_TIMEOUT) -> Dict:
+    """Get WHOIS data for domain. Skips on timeout."""
+    def _whois_lookup():
         import whois
         w = whois.whois(domain)
         return {
@@ -171,11 +175,15 @@ def get_whois_info(domain: str) -> Dict:
             'country': getattr(w, 'country', None),
             'name_servers': getattr(w, 'name_servers', None),
         }
-    except Exception:
+    try:
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            future = ex.submit(_whois_lookup)
+            return future.result(timeout=timeout)
+    except (FuturesTimeoutError, Exception):
         return {}
 
 
-def fetch_page_info(url: str, timeout: int = 8) -> Dict:
+def fetch_page_info(url: str, timeout: int = NETWORK_TIMEOUT) -> Dict:
     """Fetch title, meta, and headers from URL."""
     try:
         import requests
@@ -322,11 +330,15 @@ def get_suggestions(
     return suggestions
 
 
-def resolve_ip(domain: str) -> Optional[str]:
-    """Resolve domain to IP."""
-    try:
+def resolve_ip(domain: str, timeout: int = NETWORK_TIMEOUT) -> Optional[str]:
+    """Resolve domain to IP. Skips on timeout."""
+    def _resolve():
         return socket.gethostbyname(domain)
-    except Exception:
+    try:
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            future = ex.submit(_resolve)
+            return future.result(timeout=timeout)
+    except (FuturesTimeoutError, Exception):
         return None
 
 

@@ -264,6 +264,9 @@ passiverecon_group.add_argument('-dinfo', '--domaininfo',
                     type=str, help='get domain information like codes,server,content length',
                     metavar='domain list')
 
+passiverecon_group.add_argument('-gch', '--github-dork',
+                    type=str, help='GitHub dork scan: find API keys, tokens, passwords in org/repo (needs GITHUB_TOKEN)',
+                    metavar='org or user/repo')
 passiverecon_group.add_argument('-ti', '--target-intel',
                     type=str, help='target intel: analyze URL or domain list for pentest suggestions',
                     metavar='URL or domains.txt')
@@ -657,6 +660,27 @@ if args.ipinfo:
         print(f"{Fore.RED}Error: IPinfo API token required. Use --token to provide it.{Style.RESET_ALL}")
         sys.exit(1)
     scan_ip_info(args.ipinfo, args.token)
+
+# GitHub Dork Scanner - find leaked secrets in company repos
+if getattr(args, 'github_dork', None):
+    from github_dork_scanner import run_scan
+    target = args.github_dork.strip()
+    if 'github.com/' in target:
+        target = target.split('github.com/')[-1].rstrip('/')
+    token = os.environ.get('GITHUB_TOKEN')
+    if not token:
+        print(f"{Fore.RED}[!] GITHUB_TOKEN required. Set it: export GITHUB_TOKEN=ghp_xxx{Style.RESET_ALL}")
+    else:
+        print(f"{Fore.CYAN}[*] GitHub Dork Scan: {target}{Style.RESET_ALL}")
+        results = run_scan(target, token=token, max_dorks=15, max_per_dork=5, delay=1.2, verbose=args.verbose)
+        print(f"\n{Fore.GREEN}[*] Found {len(results)} potential secret(s){Style.RESET_ALL}\n")
+        for r in results:
+            print(f"  {Fore.YELLOW}Repo:{Style.RESET_ALL}  {r['repo']}")
+            print(f"  {Fore.YELLOW}Path:{Style.RESET_ALL}  {r['path']}")
+            print(f"  {Fore.YELLOW}Type:{Style.RESET_ALL}  {r['type']}")
+            print(f"  {Fore.YELLOW}URL:{Style.RESET_ALL}   {r['url']}")
+            print(f"  {Fore.YELLOW}Value:{Style.RESET_ALL} {r['snippet'][:70]}...")
+            print()
 
 # Target Intelligence - analyze domain/URL for pentest suggestions
 if args.target_intel:
