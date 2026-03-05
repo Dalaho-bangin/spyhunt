@@ -4,6 +4,13 @@
 
 **SpyHunt v4.1 (Security Hardened)** - A comprehensive network scanning and vulnerability assessment tool designed for security professionals and penetration testers. This tool performs comprehensive reconnaissance and vulnerability assessment on target networks and web applications, combining multiple scanning techniques with various external tools to provide extensive security intelligence.
 
+## 🆕 What's New in v4.1
+
+### **Target Intel Module** (`-ti`)
+The Target Intel module analyzes domains and URLs to produce pentest-focused suggestions. It infers industry (fintech, healthcare, e-commerce, API, auth, etc.) from hostnames, maps subdomains to attack vectors (e.g. `api` → IDOR/GraphQL, `admin` → default creds, `staging` → debug endpoints), and uses TLD hints for scope. Export results as an interactive HTML graph with `--ti-html`. Network lookups use 7s timeouts and non-blocking resolution to avoid hangs on slow hosts.
+
+---
+
 ## 🆕 What's New in v4.0
 
 ### **5 New Advanced Vulnerability Scanners**
